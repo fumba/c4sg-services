@@ -162,8 +162,7 @@ public interface OrganizationDAO extends CrudRepository<Organization, Integer> {
                                                          @Param("open") Boolean open,
                                                          @Param("status") String status,
                                                          @Param("categories") List<String> categories);
-
-
+  
     @Modifying
     @Query(DELETE_USER_ORGANIZATIONS)
     @Transactional
