@@ -44,20 +44,20 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Autowired
     private OrganizationMapper organizationMapper;
 
-	@Autowired
-	private UserDAO userDAO;
+    @Autowired
+    private UserDAO userDAO;
 
-	@Autowired
-	private UserOrganizationDAO userOrganizationDAO;
-	
-	@Autowired
-	private ProjectService projectService;
-	
+    @Autowired
+    private UserOrganizationDAO userOrganizationDAO;
+
+    @Autowired
+    private ProjectService projectService;
+
     @Autowired
     private AsyncEmailService asyncEmailService;
-    
+
     @Autowired
-	private GeocodeService geocodeService;
+    private GeocodeService geocodeService;
 
     public void save(OrganizationDTO organizationDTO) {
         Organization organization = organizationMapper.getOrganizationEntityFromDto(organizationDTO);
@@ -66,8 +66,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     public List<OrganizationDTO> findOrganizations() {
         List<Organization> organizations = organizationDAO.findAllByOrderByIdDesc();
-        List<OrganizationDTO> organizationDTOS = organizations.stream().map(o -> organizationMapper
-                .getOrganizationDtoFromEntity(o)).collect(Collectors.toList());
+        List<OrganizationDTO> organizationDTOS = organizations.stream().map(o -> organizationMapper.getOrganizationDtoFromEntity(o)).collect(Collectors.toList());
         return organizationDTOS;
     }
 
@@ -78,143 +77,144 @@ public class OrganizationServiceImpl implements OrganizationService {
     public List<OrganizationDTO> findByKeyword(String keyWord) {
         List<Organization> organizations = organizationDAO.findByNameOrDescription(keyWord, keyWord);
 
-        return organizations.stream()
-                            .map(o -> organizationMapper.getOrganizationDtoFromEntity(o))
-                            .collect(Collectors.toList());
+        return organizations.stream().map(o -> organizationMapper.getOrganizationDtoFromEntity(o)).collect(Collectors.toList());
     }
-    
+
     public Page<OrganizationDTO> findByCriteria(String keyWord, List<String> countries, Boolean open, String status, List<String> categories, Integer page, Integer size) {
-    	Page<Organization> organizationPages=null;
-    	List<Organization> organizations=null;
-    	if (page==null) page=0;
-    	if (size==null){
-	    	if(countries != null && !countries.isEmpty()){
-	    		if(open != null){
-	    			organizations = organizationDAO.findByCriteriaAndCountriesAndOpen(keyWord, countries, open, status, categories);
-	    		}
-	    		else{   
-	    			if(categories != null) {
-	    				organizations = organizationDAO.findByCriteriaAndCountries(keyWord, countries, open, status, categories);
-	    			}
-	    		}	
-	    		
-	        }
-	    	else{
-	    		if(open != null){
-	    			organizations = organizationDAO.findByCriteriaAndOpen(keyWord, open, status, categories);
-	    		}
-	    		else{
-	    			// Issue #1824 - Introduced separate query for scenarios where category is not being used to filter results
-	    			if(categories != null) {
-	    				organizations = organizationDAO.findByCriteria(keyWord, open, status, categories);
-	    			}else {
-	    				organizations = organizationDAO.findByCriteriaNoCategoryFilter(keyWord, open, status);
-	    			}
-	    		}    		
-	    	}
-	    	organizationPages=new PageImpl<Organization>(organizations);
-    	} else {
-			Pageable pageable=new PageRequest(page,size);    	    	
-	    	if(countries != null && !countries.isEmpty()){
-	    		if(open != null){
-	    			organizationPages = organizationDAO.findByCriteriaAndCountriesAndOpen(keyWord, countries, open, status, categories,pageable);
-	    		}
-	    		else{    			
-	    			organizationPages = organizationDAO.findByCriteriaAndCountries(keyWord, countries, open, status, categories,pageable);
-	    		}	
-	    		
-	        }
-	    	else{
-	    		if(open != null){
-	    			organizationPages = organizationDAO.findByCriteriaAndOpen(keyWord, open, status, categories,pageable);
-	    		}
-	    		else{
-	    			// Issue #1824 - Introduced separate query for scenarios where category is not being used to filter results
-	    			if(categories != null) {
-	    				organizationPages = organizationDAO.findByCriteria(keyWord, open, status, categories,pageable);
-	    			}else {
-	    				organizationPages = organizationDAO.findByCriteriaNoCategoryFilter(keyWord, open, status, pageable); 
-	    			}
-	    		}    		
-	    	}    		
-    	}
-    	return organizationPages.map(o -> organizationMapper.getOrganizationDtoFromEntity(o));    	
+        Page<Organization> organizationPages;
+        List<Organization> organizations = null;
+
+        if (page == null) page = 0;
+
+        if (size == null) {
+            if (countries == null || countries.isEmpty()) {
+                if (open == null) {
+                    if (categories != null) {
+                        organizations = organizationDAO.findByCriteria(keyWord, open, status, categories);
+                    } else {
+                        organizations = organizationDAO.findByCriteriaNoCategoriesFilter(keyWord, open, status);
+                    }
+                } else {
+                    if (categories == null) {
+                        organizations = organizationDAO.findByCriteriaAndOpenNoCategoriesFilter(keyWord, open, status);
+                    } else {
+                        organizations = organizationDAO.findByCriteriaAndOpen(keyWord, open, status, categories);
+                    }
+                }
+            } else {
+                if (open == null) {
+                    if (categories != null) {
+                        organizations = organizationDAO.findByCriteriaAndCountries(keyWord, countries, open, status, categories);
+                    }
+                } else {
+                    organizations = organizationDAO.findByCriteriaAndCountriesAndOpen(keyWord, countries, open, status, categories);
+                }
+            }
+            organizationPages = new PageImpl<>(organizations);
+
+            return organizationPages.map(o -> organizationMapper.getOrganizationDtoFromEntity(o));
+        }
+
+        Pageable pageable = new PageRequest(page, size);
+
+        if (countries == null || countries.isEmpty()) {
+            if (open == null) {
+                if (categories == null) {
+                    organizationPages = organizationDAO.findByCriteriaNoCategoriesFilter(keyWord, open, status, pageable);
+                } else {
+                    organizationPages = organizationDAO.findByCriteria(keyWord, open, status, categories, pageable);
+                }
+            } else {
+                if (categories == null) {
+                    organizationPages = organizationDAO.findByCriteriaAndOpenNoCategoriesFilter(keyWord, open, status, pageable);
+                } else {
+                    organizationPages = organizationDAO.findByCriteriaAndOpen(keyWord, open, status, categories, pageable);
+                }
+            }
+        } else if (open == null) {
+            organizationPages = organizationDAO.findByCriteriaAndCountries(keyWord, countries, open, status, categories, pageable);
+        } else {
+            organizationPages = organizationDAO.findByCriteriaAndCountriesAndOpen(keyWord, countries, open, status, categories, pageable);
+        }
+
+        return organizationPages.map(o -> organizationMapper.getOrganizationDtoFromEntity(o));
     }
-      
+
     public OrganizationDTO createOrganization(CreateOrganizationDTO createOrganizationDTO) {
         Organization organization = organizationDAO.save(organizationMapper.getOrganEntityFromCreateOrganDto(createOrganizationDTO));
         return organizationMapper.getOrganizationDtoFromEntity(organization);
     }
 
     public OrganizationDTO updateOrganization(int id, OrganizationDTO organizationDTO) {
-    	
+
         Organization organization = organizationDAO.findOne(id);
 
         if (organization == null) {
-        	System.out.println("Organization does not exist.");
+            System.out.println("Organization does not exist.");
         } else {
-        	organization = organizationMapper.getOrganizationEntityFromDto(organizationDTO);
+            organization = organizationMapper.getOrganizationEntityFromDto(organizationDTO);
             try {
-    			Map<String, BigDecimal> geoCode = geocodeService.getGeoCode(organization.getState(), organization.getCountry());
-    			organization.setLatitude(geoCode.get("lat"));
-    			organization.setLongitude(geoCode.get("lng"));
-            }  catch (Exception e) {
-            	//throw new NotFoundException("Error getting geocode");
-            	System.out.println("Error getting geocode: " + e.toString());
-    		}
+                Map<String, BigDecimal> geoCode = geocodeService.getGeoCode(organization.getState(), organization.getCountry());
+                organization.setLatitude(geoCode.get("lat"));
+                organization.setLongitude(geoCode.get("lng"));
+            } catch (Exception e) {
+                //throw new NotFoundException("Error getting geocode");
+                System.out.println("Error getting geocode: " + e.toString());
+            }
             organizationDAO.save(organization);
             String newStatus = organization.getStatus();
-            
+
             // Notify admin users of new organization, or update for a declined organization
             if (newStatus.equals(Constants.ORGANIZATION_STATUS_PENDIONG_REVIEW) || newStatus.equals(Constants.ORGANIZATION_STATUS_DECLINED)) {
-            	
-            	String toAddress = null;
-            	List<User> users = userDAO.findByKeyword(null, "A", "A", null);
-            	if (users != null && !users.isEmpty()) {
-            		User adminUser = users.get(0);
-            		toAddress = adminUser.getEmail();
-            	}	
-            			
-            	Map<String, Object> context = new HashMap<String, Object>();
-            	context.put("organization", organization);         	
-            	asyncEmailService.sendWithContext(Constants.C4SG_ADDRESS, toAddress, "", Constants.SUBJECT_NEW_ORGANIZATION_REVIEW, Constants.TEMPLATE_NEW_ORGANIZATION_REVIEW, context);
-            	System.out.println("New organization email sent: Organization=" + organization.getId() + " ; Email=" + toAddress);
+
+                String toAddress = null;
+                List<User> users = userDAO.findByKeyword(null, "A", "A", null);
+                if (users != null && !users.isEmpty()) {
+                    User adminUser = users.get(0);
+                    toAddress = adminUser.getEmail();
+                }
+
+                Map<String, Object> context = new HashMap<String, Object>();
+                context.put("organization", organization);
+                asyncEmailService
+                        .sendWithContext(Constants.C4SG_ADDRESS, toAddress, "", Constants.SUBJECT_NEW_ORGANIZATION_REVIEW, Constants.TEMPLATE_NEW_ORGANIZATION_REVIEW, context);
+                System.out.println("New organization email sent: Organization=" + organization.getId() + " ; Email=" + toAddress);
             }
         }
-        
+
         return organizationMapper.getOrganizationDtoFromEntity(organization);
     }
 
-    public void deleteOrganization(int id){
-    	Organization organization = organizationDAO.findOne(id);
-    	if(organization != null){
-    		organization.setStatus(Constants.ORGANIZATION_STATUS_DELETED);
-    		// TODO Delete logo from S3 by frontend
-    		organizationDAO.save(organization);
-    		List<ProjectDTO> projects=projectService.findByOrganization(id, null);
-    		for (ProjectDTO project:projects){
-    			projectService.deleteProject(project.getId());
-    		}
-    		organizationDAO.deleteUserOrganizations(id);
-    		//TODO: Local or Timezone?
-    		//TODO: Format date
-    		//organization.setDeleteTime(LocalDateTime.now().toString());
-    		//organization.setDeleteBy(user.getUsername());
-    	}
+    public void deleteOrganization(int id) {
+        Organization organization = organizationDAO.findOne(id);
+        if (organization != null) {
+            organization.setStatus(Constants.ORGANIZATION_STATUS_DELETED);
+            // TODO Delete logo from S3 by frontend
+            organizationDAO.save(organization);
+            List<ProjectDTO> projects = projectService.findByOrganization(id, null);
+            for (ProjectDTO project : projects) {
+                projectService.deleteProject(project.getId());
+            }
+            organizationDAO.deleteUserOrganizations(id);
+            //TODO: Local or Timezone?
+            //TODO: Format date
+            //organization.setDeleteTime(LocalDateTime.now().toString());
+            //organization.setDeleteBy(user.getUsername());
+        }
     }
 
     @Override
     public List<OrganizationDTO> findByUser(Integer userId) {
-      User user = userDAO.findById(userId);
-      requireNonNull(user, "Invalid User Id");
-      List<UserOrganization> userOrganizations = userOrganizationDAO.findByUserId(userId);
-      List<OrganizationDTO> organizationDtos = new ArrayList<OrganizationDTO>();
-      for (UserOrganization userOrganization : userOrganizations) {
-        organizationDtos.add(organizationMapper.getOrganizationDtoFromEntity(userOrganization));
-      }
-      return organizationDtos;
+        User user = userDAO.findById(userId);
+        requireNonNull(user, "Invalid User Id");
+        List<UserOrganization> userOrganizations = userOrganizationDAO.findByUserId(userId);
+        List<OrganizationDTO> organizationDtos = new ArrayList<OrganizationDTO>();
+        for (UserOrganization userOrganization : userOrganizations) {
+            organizationDtos.add(organizationMapper.getOrganizationDtoFromEntity(userOrganization));
+        }
+        return organizationDtos;
     }
-    
+
     @Override
     public OrganizationDTO saveUserOrganization(Integer userId, Integer organizationId) throws UserOrganizationException {
         User user = userDAO.findById(userId);
@@ -225,42 +225,42 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (nonNull(userOrganization)) {
             throw new UserOrganizationException("The user organization relationship already exists.");
         } else {
-        	userOrganization = new UserOrganization();
-        	userOrganization.setUser(user);
-        	userOrganization.setOrganization(organization);
-        	userOrganizationDAO.save(userOrganization);
+            userOrganization = new UserOrganization();
+            userOrganization.setUser(user);
+            userOrganization.setOrganization(organization);
+            userOrganizationDAO.save(userOrganization);
         }
-        
+
         return organizationMapper.getOrganizationDtoFromEntity(organization);
     }
-    
-	@Override
-	public void saveLogo(Integer id, String imgUrl) {
-		organizationDAO.updateLogo(imgUrl, id);
-	}
-	
-	@Override
-	public void approveOrDecline(Integer id, String status) {
-		organizationDAO.approveOrDecline(id, status);
-		
-        // Notify organization user of approval or deny
-       	String toAddress = null;
-    	List<User> users = userDAO.findByOrgId(id);
-    	if (users != null && !users.isEmpty()) {
-    		User orgUser = users.get(0);
-    		toAddress = orgUser.getEmail();
-    	}	
-        			
-       	Map<String, Object> context = new HashMap<String, Object>();     	
-       	if (status.equals(Constants.ORGANIZATION_STATUS_ACTIVE))
-       		asyncEmailService.sendWithContext(Constants.C4SG_ADDRESS, toAddress, "", Constants.SUBJECT_NEW_ORGANIZATION_APPROVE, Constants.TEMPLATE_NEW_ORGANIZATION_APPROVE, context);
-       	else if (status.equals(Constants.ORGANIZATION_STATUS_DECLINED))
-       		asyncEmailService.sendWithContext(Constants.C4SG_ADDRESS, toAddress, "", Constants.SUBJECT_NEW_ORGANIZATION_DECLINE, Constants.TEMPLATE_NEW_ORGANIZATION_DECLINE, context);
-       	System.out.println("Organization approval/decline email sent: Organization=" + id + " ; Email=" + toAddress);
-	}
 
-	@Override
-	public int countByCountry() {
-		return organizationDAO.countByCountry();
-	}
+    @Override
+    public void saveLogo(Integer id, String imgUrl) {
+        organizationDAO.updateLogo(imgUrl, id);
+    }
+
+    @Override
+    public void approveOrDecline(Integer id, String status) {
+        organizationDAO.approveOrDecline(id, status);
+
+        // Notify organization user of approval or deny
+        String toAddress = null;
+        List<User> users = userDAO.findByOrgId(id);
+        if (users != null && !users.isEmpty()) {
+            User orgUser = users.get(0);
+            toAddress = orgUser.getEmail();
+        }
+
+        Map<String, Object> context = new HashMap<String, Object>();
+        if (status.equals(Constants.ORGANIZATION_STATUS_ACTIVE)) asyncEmailService
+                .sendWithContext(Constants.C4SG_ADDRESS, toAddress, "", Constants.SUBJECT_NEW_ORGANIZATION_APPROVE, Constants.TEMPLATE_NEW_ORGANIZATION_APPROVE, context);
+        else if (status.equals(Constants.ORGANIZATION_STATUS_DECLINED)) asyncEmailService
+                .sendWithContext(Constants.C4SG_ADDRESS, toAddress, "", Constants.SUBJECT_NEW_ORGANIZATION_DECLINE, Constants.TEMPLATE_NEW_ORGANIZATION_DECLINE, context);
+        System.out.println("Organization approval/decline email sent: Organization=" + id + " ; Email=" + toAddress);
+    }
+
+    @Override
+    public int countByCountry() {
+        return organizationDAO.countByCountry();
+    }
 }

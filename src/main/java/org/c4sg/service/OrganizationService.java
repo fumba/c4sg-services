@@ -16,7 +16,6 @@ public interface OrganizationService {
     OrganizationDTO updateOrganization(int id, OrganizationDTO organizationDTO);
 	OrganizationDTO saveUserOrganization(Integer userId, Integer organizationId)  throws UserOrganizationException;
     List<OrganizationDTO> findOrganizations();
-    List<OrganizationDTO> findByKeyword(String name);
     Page<OrganizationDTO> findByCriteria(String keyWord, List<String> countries, Boolean open, String status, List<String> categories,Integer page,Integer size);
     List<OrganizationDTO> findByUser(Integer userId);
     void saveLogo(Integer id, String imgUrl);
